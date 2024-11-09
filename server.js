@@ -4,7 +4,7 @@ const app = express();
 const fetch = require('node-fetch');
 
 // Render에서 제공하는 포트 번호 사용
-const PORT = process.env.PORT || 10000;  // Render는 기본 포트 번호로 10000을 사용합니다
+const PORT = process.env.PORT || 10000;  // Render는 기본적으로 PORT 환경 변수를 설정합니다.
 
 // 환경 변수에서 API 키 가져오기
 const ODSAY_API_KEY = process.env.OD_SAY_API_KEY;
@@ -34,7 +34,7 @@ app.get('/search-station', async (req, res) => {
     }
 });
 
-// 서버 실행
-app.listen(PORT, '0.0.0.0', () => {  // '0.0.0.0'으로 바인딩해서 모든 네트워크 인터페이스에서 연결 가능하도록 설정
+// 서버 실행 (포트 바인딩)
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
 });
