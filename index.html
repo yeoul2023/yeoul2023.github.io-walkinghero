@@ -58,10 +58,10 @@
         </div>
     </header>
 
-    <!-- 메인 컴퓨팅 -->
+    <!-- 메인 컨텐츠 -->
     <main class="max-w-5xl mx-auto px-4 py-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- 검색 폴맵 -->
+            <!-- 검색 폼 -->
             <div class="bg-white rounded-xl shadow-sm p-6">
                 <div class="space-y-4 relative">
                     <!-- 출발지 -->
@@ -79,7 +79,7 @@
                         </div>
                     </div>
 
-                    <!-- 경유지 컨텍이너 -->
+                    <!-- 경유지 컨테이너 -->
                     <div id="stopPoints"></div>
 
                     <!-- 도착지 -->
@@ -119,7 +119,7 @@
 
             <!-- 검색 결과 -->
             <div class="space-y-4">
-                <!-- 로딩 인디코저 -->
+                <!-- 로딩 인디케이터 -->
                 <div id="loadingIndicator" class="hidden">
                     <div class="bg-white rounded-xl shadow-sm p-6 text-center">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
@@ -127,7 +127,7 @@
                     </div>
                 </div>
 
-                <!-- 검색 결과 컨텍이너 -->
+                <!-- 검색 결과 컨테이너 -->
                 <div id="searchResult" class="hidden">
                     <div id="routeInfo" class="space-y-4">
                     </div>
@@ -239,6 +239,19 @@
                 }
             });
 
-            // 외부 클릭시 검색결과 숨기기
+            // 외부 클릭 시 검색결과 숨기기
             document.addEventListener('click', (e) => {
-                if (!inputElement.contains(e.target) && !
+                if (!inputElement.contains(e.target) && !resultsContainer.contains(e.target)) {
+                    resultsContainer.classList.add('hidden');
+                }
+            });
+        }
+
+        // 초기 설정
+        document.addEventListener('DOMContentLoaded', () => {
+            setupSearchInput(document.getElementById('from'));
+            setupSearchInput(document.getElementById('to'));
+        });
+    </script>
+</body>
+</html>
