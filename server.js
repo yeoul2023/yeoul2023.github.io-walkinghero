@@ -1,40 +1,36 @@
 const express = require('express');
-const cors = require('cors'); // CORS 설정 추가
+const cors = require('cors');
+const axios = require('axios');
+
 const app = express();
-const fetch = require('node-fetch');
+const port = process.env.PORT || 10000;
 
-// Render에서 제공하는 포트 번호 사용
-const PORT = process.env.PORT || 10000;  // Render는 기본적으로 PORT 환경 변수를 설정합니다.
-
-// 환경 변수에서 API 키 가져오기
-const ODSAY_API_KEY = process.env.OD_SAY_API_KEY;
-
-// CORS 설정 추가 (프론트엔드와 연결 시 필요)
+// 모든 출처 허용 (CORS 설정)
 app.use(cors());
 
-// 정류장 검색 엔드포인트
+// 환경 변수에서 API Key 가져오기
+const apiKey = process.env.OD_SAY_API_KEY;
+
+// 정류장 검색 API
 app.get('/search-station', async (req, res) => {
-    const stationName = req.query.stationName;
-    if (!stationName) {
-        return res.status(400).json({ error: 'stationName 쿼리 매개변수가 필요합니다.' });
-    }
+  const stationName = req.query.stationName;
 
-    const url = `https://api.odsay.com/v1/api/searchStation?apiKey=${ODSAY_API_KEY}&stationName=${encodeURIComponent(stationName)}&stationClass=1:2`;
+  if (!stationName || stationName.length < 2) {
+    return res.status(400).send({ error: '정류장 이름을 두 글자 이상 입력해주세요.' });
+  }
 
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('ODsay API 호출 오류');
-        }
-        const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        console.error('ODsay API 호출 오류:', error);
-        res.status(500).json({ error: '서버 오류가 발생했습니다.' });
-    }
+  const url = `https://api.odsay.com/v1/api/searchStation?apiKey=${apiKey}&stationName=${encodeURIComponent(stationName)}&stationClass=1:2`;
+
+  try {
+    const response = await axios.get(url);
+    res.json(response.data);
+  } catch (error) {
+    console.error('정류장 검색 오류:', error);
+    res.status(500).send({ error: '정류장 검색 중 오류가 발생했습니다.' });
+  }
 });
 
-// 서버 실행 (포트 바인딩)
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
+// 서버 시작
+app.listen(port, () => {
+  console.log(`서버가 포트 ${port}에서 실행 중입니다.`);
 });
