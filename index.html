@@ -1,57 +1,192 @@
-/* Updated Backend Code (server.js) */
-
-// Backend Code with Debugging (server.js)
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
-
-const app = express();
-const port = process.env.PORT || 10000;
-
-// CORS 설정
-app.use(cors());
-
-// /searchStation 라우트 설정
-app.get('/searchStation', async (req, res) => {
-    try {
-        console.log('Received request for /searchStation'); // 디버깅 로그
-        console.log('Query Parameters:', req.query); // 디버깅 로그
-
-        const { stationName, stationClass } = req.query;
-        const apiKey = process.env.OD_SAY_API_KEY;
-
-        if (!stationName || !stationClass) {
-            console.error('Missing stationName or stationClass'); // 디버깅 로그
-            return res.status(400).json({ error: 'Missing stationName or stationClass' });
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대중교통 길찾기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .station-search-result {
+            max-height: 200px;
+            overflow-y: auto;
+            scrollbar-width: thin;
         }
 
-        if (!apiKey) {
-            console.error('API Key is missing from environment variables'); // 디버깅 로그
-            return res.status(500).json({ error: 'API Key is not set in environment variables' });
+        .station-search-result::-webkit-scrollbar {
+            width: 6px;
         }
 
-        // ODsay API 호출
-        console.log('Calling ODsay API with params:', { apiKey, stationName, stationClass }); // 디버깅 로그
-        const response = await axios.get('https://api.odsay.com/v1/api/searchStation', {
-            params: {
-                apiKey,
-                stationName,
-                stationClass
+        .station-search-result::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .station-search-result::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .searching-pulse {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .route-point::after {
+            content: '';
+            position: absolute;
+            left: 6px;
+            width: 2px;
+            background: #e5e7eb;
+            top: 24px;
+            bottom: -24px;
+            z-index: 0;
+        }
+
+        .route-point:last-child::after {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 헤더 -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-5xl mx-auto px-4 py-4">
+            <h1 class="text-xl font-bold text-gray-900">대중교통 길찾기</h1>
+        </div>
+    </header>
+
+    <!-- 메인 컴텐츠 -->
+    <main class="max-w-5xl mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 검색 폼 -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="space-y-4 relative">
+                    <!-- 출발지 -->
+                    <div class="relative route-point">
+                        <div class="flex items-center">
+                            <span class="w-20 text-sm text-gray-500">출발지</span>
+                            <div class="w-3 h-3 bg-blue-500 rounded-full relative z-10"></div>
+                            <div class="flex-1 ml-4">
+                                <input type="text" id="from" 
+                                    class="w-full py-2 px-3 text-sm bg-gray-50 rounded-lg outline-none focus:bg-blue-50 transition-colors"
+                                    placeholder="출발지 입력 (2글자 이상)">
+                                <div class="station-search-results hidden absolute w-full mt-1 bg-white rounded-lg shadow-lg z-20">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 경유지 컨텐어 -->
+                    <div id="stopPoints"></div>
+
+                    <!-- 도착지 -->
+                    <div class="relative route-point">
+                        <div class="flex items-center">
+                            <span class="w-20 text-sm text-gray-500">도착지</span>
+                            <div class="w-3 h-3 bg-red-500 rounded-full relative z-10"></div>
+                            <div class="flex-1 ml-4">
+                                <input type="text" id="to" 
+                                    class="w-full py-2 px-3 text-sm bg-gray-50 rounded-lg outline-none focus:bg-blue-50 transition-colors"
+                                    placeholder="도착지 입력 (2글자 이상)">
+                                <div class="station-search-results hidden absolute w-full mt-1 bg-white rounded-lg shadow-lg z-20">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 버튼 -->
+                    <div class="flex justify-between pt-4">
+                        <button id="addStopPoint"
+                            class="text-blue-500 hover:text-blue-600 text-sm px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            경유지 추가
+                        </button>
+                        <button id="searchButton" onclick="handleSearch()"
+                            class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-6 py-2 rounded-lg transition-colors flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            경로 찾기
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 검색 결과 -->
+            <div class="space-y-4">
+                <!-- 로딩 인디코저 -->
+                <div id="loadingIndicator" class="hidden">
+                    <div class="bg-white rounded-xl shadow-sm p-6 text-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                        <p class="mt-4 text-sm text-gray-600">경로를 검색하고 있습니다...</p>
+                    </div>
+                </div>
+
+                <!-- 검색 결과 컨텐어 -->
+                <div id="searchResult" class="hidden">
+                    <div id="routeInfo" class="space-y-4">
+                    </div>
+                </div>
+
+                <!-- 초기 안내 메시지 -->
+                <div id="initialMessage" class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="text-center text-gray-500">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                        </svg>
+                        <p class="text-sm">출발지와 도착지를 입력하여<br>경로를 검색해보세요.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="bg-white border-t mt-8">
+        <div class="max-w-5xl mx-auto px-4 py-4">
+            <p class="text-center text-sm text-gray-500">
+                © 2024 대중교통 길찾기. Powered by ODsay Lab.
+            </p>
+        </div>
+    </footer>
+<script>
+        let stopPoints = [];
+        let searchDebounceTimer;
+
+        // 정류장 검색 함수
+        async function searchStation(keyword) {
+            if (keyword.length < 2) return null;
+            const url = `https://yeoul2023-github-io-walkinghero.onrender.com/searchStation?stationName=${encodeURIComponent(keyword)}`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('정류장 검색 오류:', error);
+                return null;
             }
-        });
-
-        console.log('ODsay API response:', response.data); // 디버깅 로그
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error occurred while fetching data from ODsay API:', error.message); // 디버깅 로그
-        if (error.response) {
-            console.error('ODsay API response error:', error.response.data); // 디버깅 로그
         }
-        res.status(500).json({ error: 'Failed to fetch data from ODsay API' });
-    }
-});
 
-// 서버 시작
-app.listen(port, () => {
-    console.log(`서버가 포트 ${port}에서 실행 중입니다.`);
-});
+        // 검색 결과 표시 함수
+        function displaySearchResults(results, containerElement) {
+            if (!results || !results.result?.station) {
+                containerElement.innerHTML = `
+                    <div class="p-3 text-sm text-gray-500 text-center">
+                        검색 결과가 없습니다
+                    </div>
+                `;
+                return;
+            }
+
+            const stations = results.result.station;
+            containerElement.innerHTML = stations.map(station => `
+                <div class="p-3 hover:bg-gray-50 cursor-pointer flex items-center text-sm transition-colors"
+                     data-x="${station.x}"
+                     data-y
+
