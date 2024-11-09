@@ -1,10 +1,16 @@
 const express = require('express');
+const cors = require('cors'); // CORS 설정 추가
 const app = express();
 const fetch = require('node-fetch');
+
+// Render에서 제공하는 포트 번호 사용
 const PORT = process.env.PORT || 3000;
 
-// Render의 환경 변수에서 API 키 가져오기
+// 환경 변수에서 API 키 가져오기
 const ODSAY_API_KEY = process.env.OD_SAY_API_KEY;
+
+// CORS 설정 추가 (프론트엔드와 연결 시 필요)
+app.use(cors());
 
 // 정류장 검색 엔드포인트
 app.get('/search-station', async (req, res) => {
