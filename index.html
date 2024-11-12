@@ -58,7 +58,7 @@
         </div>
     </header>
 
-    <!-- 메인 컴텐츠 -->
+    <!-- 메인 컨텐츠 -->
     <main class="max-w-5xl mx-auto px-4 py-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- 검색 폼 -->
@@ -79,7 +79,7 @@
                         </div>
                     </div>
 
-                    <!-- 경유지 컨텐어 -->
+                    <!-- 경유지 컨테이너 -->
                     <div id="stopPoints"></div>
 
                     <!-- 도착지 -->
@@ -119,7 +119,7 @@
 
             <!-- 검색 결과 -->
             <div class="space-y-4">
-                <!-- 로딩 인디코저 -->
+                <!-- 로딩 인디케이터 -->
                 <div id="loadingIndicator" class="hidden">
                     <div class="bg-white rounded-xl shadow-sm p-6 text-center">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
@@ -127,7 +127,7 @@
                     </div>
                 </div>
 
-                <!-- 검색 결과 컨텐어 -->
+                <!-- 검색 결과 컨테이너 -->
                 <div id="searchResult" class="hidden">
                     <div id="routeInfo" class="space-y-4">
                     </div>
@@ -161,7 +161,7 @@
         // 정류장 검색 함수
         async function searchStation(keyword) {
             if (keyword.length < 2) return null;
-            const url = `https://yeoul2023-github-io-walkinghero.onrender.com/searchStation?stationName=${encodeURIComponent(keyword)}`;
+            const url = https://yeoul2023-github-io-walkinghero.onrender.com/search-station?stationName=${encodeURIComponent(keyword)};
             
             try {
                 const response = await fetch(url);
@@ -175,18 +175,102 @@
 
         // 검색 결과 표시 함수
         function displaySearchResults(results, containerElement) {
-            if (!results || !results.result?.station) {
-                containerElement.innerHTML = `
+            if (!results || !results.result.station) {
+                containerElement.innerHTML = 
                     <div class="p-3 text-sm text-gray-500 text-center">
                         검색 결과가 없습니다
                     </div>
-                `;
+                ;
                 return;
             }
 
             const stations = results.result.station;
-            containerElement.innerHTML = stations.map(station => `
+            containerElement.innerHTML = stations.map(station => 
                 <div class="p-3 hover:bg-gray-50 cursor-pointer flex items-center text-sm transition-colors"
                      data-x="${station.x}"
-                     data-y
+                     data-y="${station.y}"
+                     role="option">
+                    <span class="w-6 h-6 flex items-center justify-center rounded-full text-white text-xs mr-2 
+                           ${station.stationClass === 1 ? 'bg-green-500' : 'bg-blue-500'}">
+                        ${station.stationClass === 1 ? '버스' : '철도'}
+                    </span>
+                    <div>
+                        <div class="font-medium">${station.stationName}</div>
+                        <div class="text-xs text-gray-500">${station.arsID || ''}</div>
+                    </div>
+                </div>
+            ).join('');
+        }
 
+        // 검색 UI 설정
+        function setupSearchInput(inputElement) {
+            const resultsContainer = inputElement.parentElement.querySelector('.station-search-results');
+            
+            inputElement.addEventListener('input', (e) => {
+                clearTimeout(searchDebounceTimer);
+                const query = e.target.value;
+
+                if (query.length < 2) {
+                    resultsContainer.classList.add('hidden');
+                    return;
+                }
+
+                searchDebounceTimer = setTimeout(async () => {
+                    resultsContainer.classList.remove('hidden');
+                    resultsContainer.innerHTML = 
+                        <div class="p-3 text-sm text-gray-500 text-center searching-pulse">
+                            검색중...
+                        </div>
+                    ;
+
+                    const results = await searchStation(query);
+                    displaySearchResults(results, resultsContainer);
+                }, 300);
+            });
+
+            // 검색 결과 선택
+            resultsContainer.addEventListener('click', (e) => {
+                const option = e.target.closest('[data-x]');
+                if (option) {
+                    inputElement.value = option.querySelector('.font-medium').textContent;
+                    inputElement.dataset.x = option.dataset.x;
+                    inputElement.dataset.y = option.dataset.y;
+                    resultsContainer.classList.add('hidden');
+                }
+            });
+
+            // 외부 클릭 시 검색결과 숨기기
+            document.addEventListener('click', (e) => {
+                if (!inputElement.contains(e.target) && !resultsContainer.contains(e.target)) {
+                    resultsContainer.classList.add('hidden');
+                }
+            });
+        }
+
+        // 초기 설정
+        document.addEventListener('DOMContentLoaded', () => {
+            setupSearchInput(document.getElementById('from'));
+            setupSearchInput(document.getElementById('to'));
+        });
+    </script>
+</body>
+</html>
+
+package.jason
+
+{
+  "name": "walkinghero-backend",
+  "version": "1.0.0",
+  "description": "Backend for WalkingHero public transportation route finder",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "yeoul2023",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}
